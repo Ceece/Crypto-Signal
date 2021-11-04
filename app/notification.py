@@ -10,6 +10,7 @@ from notifiers.slack_client import SlackNotifier
 from notifiers.discord_client import DiscordNotifier
 from notifiers.gmail_client import GmailNotifier
 from notifiers.telegram_client import TelegramNotifier
+from notifiers.line_client import LineNotifier
 from notifiers.webhook_client import WebhookNotifier
 from notifiers.stdout_client import StdoutNotifier
 
@@ -74,6 +75,13 @@ class Notifier():
             )
             enabled_notifiers.append('telegram')
 
+        self.line_configured = self._validate_required_config('line', notifier_config)
+        if self.line_configured:
+            self.line_client = LineNotifier(
+                token=notifier_config['line']['required']['token']
+            )
+            enabled_notifiers.append('line')
+
         self.webhook_configured = self._validate_required_config('webhook', notifier_config)
         if self.webhook_configured:
             self.webhook_client = WebhookNotifier(
@@ -103,6 +111,7 @@ class Notifier():
         self.notify_twilio(new_analysis)
         self.notify_gmail(new_analysis)
         self.notify_telegram(new_analysis)
+        self.notify_line(new_analysis)
         self.notify_webhook(new_analysis)
         self.notify_stdout(new_analysis)
 
@@ -184,6 +193,22 @@ class Notifier():
             )
             if message.strip():
                 self.telegram_client.notify(message)
+
+
+    def notify_line(self, new_analysis):
+        """Send a notification via the line notifier
+
+        Args:
+            new_analysis (dict): The new_analysis to send.
+        """
+
+        if self.line_configured:
+            message = self._indicator_message_templater(
+                new_analysis,
+                self.notifier_config['line']['optional']['template']
+            )
+            if message.strip():
+                self.line_client.notify(message)
 
 
     def notify_webhook(self, new_analysis):
